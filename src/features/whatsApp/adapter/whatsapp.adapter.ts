@@ -6,18 +6,20 @@ import { WhatsappService } from "../service/whatsapp.service";
 export class WhatsappAdapter {
   constructor(private readonly service: WhatsappService) { }
 
-  createSession(sessionId: string) {
+  /*createSession(sessionId: string) {
     return this.service.createAndConnectSession(sessionId);
+  }*/
+
+  sendMessage(sessionId: string, text: string, conversationId: string) {
+    return this.service.simulateIncomingMessage(sessionId, text, conversationId);
   }
 
-  sendMessage(sessionId: string, text: string) {
-    return this.service.simulateIncomingMessage(sessionId, text); // passa 4 args internamente
+
+  getUserSessions(userId: any) {
+    return this.service.listSessionsByUser(userId);
   }
 
- 
-  getSessionStatus() {
-    return this.service.getSession();
-  }
+
 
   disconnect(sessionId: string) {
     return this.service.disconnect(sessionId);
