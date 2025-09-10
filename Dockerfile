@@ -1,36 +1,42 @@
-# Etapa 1: Build
-FROM node:22-alpine
+# --------------------------
+# Etapa de build
+# --------------------------
+FROM node:22-alpine AS builder
 
-# Definir diretório de trabalho
 WORKDIR /app
 
-# Copiar package.json e package-lock.json/yarn.lock primeiro (cache)
+# Copiar apenas arquivos de dependência
 COPY package*.json ./
 
-# Instalar dependências
-RUN npm install
+# Instalar dependências completas (produção + dev)
+RUN npm install --legacy-peer-deps --no-audit --no-fund
 
-# Copiar o resto do código
+# Copiar todo o código
 COPY . .
 
-# Gerar Prisma Client
-RUN npx prisma generate
-
-# Build da aplicação NestJS
+# Rodar build (NestJS, Next.js, etc.)
 RUN npm run build
 
-# Etapa 2: Runtime
-FROM node:20-alpine AS runner
+
+# --------------------------
+# Etapa final (runner)
+# --------------------------
+FROM node:22-alpine AS runner
 
 WORKDIR /app
 
-# Copiar apenas o necessário da etapa de build
-COPY --from=builder /app/node_modules ./node_modules
+# Copiar apenas arquivos de dependência
+COPY package*.json ./
+
+# Instalar apenas dependências de produção (inclui prisma client)
+RUN npm install --omit=dev --legacy-peer-deps --no-audit --no-fund
+
+# Copiar dist e prisma do builder
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
 
-# Expor a porta do NestJS
+# Porta padrão (ajuste se necessário)
 EXPOSE 3000
 
-# Comando de inicialização
-CMD ["node", "dist/main"]
+# Rodar migrations antes de iniciar
+CMD npx prisma migrate deploy && npm start
