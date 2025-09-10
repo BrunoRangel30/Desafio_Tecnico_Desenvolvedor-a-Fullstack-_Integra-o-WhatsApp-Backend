@@ -4,19 +4,20 @@ FROM node:20-alpine
 # Defina o diretório de trabalho no contêiner
 WORKDIR /usr/src/app
 
-# Copie o package.json e instale as dependências
+# Copie os arquivos de dependências
 COPY package*.json ./
+
+# Instale dependências
 RUN npm install
 
-# **Execute as migrações**
-# Este passo garante que a estrutura do banco de dados está atualizada antes da aplicação rodar
-RUN npm run typeorm migration:run
-
-# Copie o resto do código da sua aplicação
+# Copie o resto do código
 COPY . .
 
-# Compila a aplicação NestJS
+# Compile a aplicação NestJS
 RUN npm run build
 
-# Comando final para rodar a aplicação
-CMD ["node", "dist/main"]
+# Comando final:
+# 1. Aplica as migrations em produção
+# 2. Executa o seed do Prisma
+# 3. Inicia a aplicação
+CMD ["sh", "-c", "npx prisma migrate deploy  && node dist/main.js"]
