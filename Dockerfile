@@ -1,21 +1,22 @@
-# Usa a imagem oficial do Node.js
+# Use a imagem oficial do Node.js
 FROM node:18-alpine
 
-# Define o diretório de trabalho no container
+# Defina o diretório de trabalho no contêiner
 WORKDIR /usr/src/app
 
-# Copia o package.json e o package-lock.json e instala as dependências
+# Copie o package.json e instale as dependências
 COPY package*.json ./
-RUN npm install --only=production
+RUN npm install
 
-# Copia o resto do código da sua aplicação
+# **Execute as migrações**
+# Este passo garante que a estrutura do banco de dados está atualizada antes da aplicação rodar
+RUN npm run typeorm migration:run
+
+# Copie o resto do código da sua aplicação
 COPY . .
 
 # Compila a aplicação NestJS
 RUN npm run build
 
-# Exponha a porta
-EXPOSE 3000
-
-# Comando para rodar a aplicação
+# Comando final para rodar a aplicação
 CMD ["node", "dist/main"]
