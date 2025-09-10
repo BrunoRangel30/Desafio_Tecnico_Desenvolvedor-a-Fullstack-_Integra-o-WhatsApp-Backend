@@ -23,7 +23,6 @@ export class WhatsappGateway implements OnGatewayInit, OnGatewayConnection {
     private readonly adapter: WhatsappAdapter,
     private readonly eventEmitter: EventEmitter2,
     private readonly jwtService: JwtService,
-    // private readonly whatsappService: WhatsappService, // ✅ para buscar sessões
   ) { }
 
   // 🔹 Valida o token no handshake e injeta o user no client
@@ -91,17 +90,11 @@ export class WhatsappGateway implements OnGatewayInit, OnGatewayConnection {
     // Envia pro front
     client.emit("SESSIONS_UPDATE", sessions);
 
-    // Registra listeners
-    /* sessions.forEach((session) => {
-       this.whatsappService.registerFrontendListeners(session.sessionId, client);
-     });*/
   }
-
- 
 
   @SubscribeMessage("attach_session")
   handleAttachSession(@ConnectedSocket() client: Socket, @MessageBody() data: { sessionId: string }) {
     client.join(data.sessionId);
-    console.log("✅ Cliente entrou na room da sessão:", data.sessionId);
+    //console.log("✅ Cliente entrou na room da sessão:", data.sessionId);
   }
 }

@@ -26,7 +26,7 @@ export class WhatsappController {
     };
   }
 
-  @Get("/conversations")
+  @Get("/conversations/:sessionId")
   async getConversations(@Param("sessionId") sessionId: string) {
       return this.whatsappService.getConversationsBySession(sessionId);
   }
