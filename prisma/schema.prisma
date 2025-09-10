@@ -1,6 +1,5 @@
-// schema.prisma
 datasource db {
-  provider = "postgresql" // ou mysql/sqlite/mongodb conforme seu projeto
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -8,15 +7,9 @@ generator client {
   provider = "prisma-client-js"
 }
 
-model User {
-  id        String   @id @default(uuid())  // ID único do usuário
-  email     String   @unique              // Email único para login ou identificação
-  name      String?                        // Nome do usuário (opcional)
-  password  String?                        // Senha (se for auth local; null se SSO)
-  createdAt DateTime @default(now())       // Data de criação do usuário
-  sessions  WhatsAppSession[]              // Relação 1:N: um usuário pode ter várias sessões de WhatsApp
-}
-
+// ============================
+// ENUMS
+// ============================
 enum SessionStatus {
   open
   connected
@@ -26,49 +19,63 @@ enum SessionStatus {
   qr
 }
 
+enum MessageType {
+  text
+  image
+  video
+  audio
+  file
+  sticker
+  unknown
+}
+
+// ============================
+// MODELS
+// ============================
+model User {
+  id        String            @id @default(uuid())
+  email     String            @unique
+  name      String?
+  password  String?
+  createdAt DateTime          @default(now())
+
+  sessions  WhatsAppSession[]
+}
+
 model WhatsAppSession {
-  id          String   @id @default(uuid())       // ID interno da sessão
-  sessionId   String   @unique                     // Identificador do cliente WhatsApp (ex: nome da pasta de auth)
-  user        User?    @relation(fields: [userId], references: [id]) // Relacionamento com usuário
-  userId      String?                                 // FK para o User
-  status      SessionStatus @default(open)          // Status da sessão
-  pairingCode String?                                // Código de pareamento (se usar pairing flow)
-  qr          String?                                // QR code temporário (base64) para exibir no front
-  createdAt   DateTime @default(now())              // Data de criação
-  updatedAt   DateTime @updatedAt                  // Atualização automática
+  id          String           @id @default(uuid())
+  sessionId   String           @unique
+  user        User?            @relation(fields: [userId], references: [id])
+  userId      String?
+  status      SessionStatus    @default(open)
+  pairingCode String?
+  qr          String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
   conversations Conversation[]
 }
 
 model Conversation {
-  id            String   @id @default(uuid())   // ID da conversa
-  session       WhatsAppSession @relation(fields: [sessionId], references: [id]) // FK para sessão
-  sessionId     String                             // Campo de relação
-  contactJid    String                             // JID do contato (ex: 5511999999999@s.whatsapp.net)
-  contactName   String?                            // Nome do contato (opcional)
-  messages      Message[]                          // Relação 1:N: uma conversa tem várias mensagens
-  lastMessageAt DateTime?                          // Data da última mensagem (para otimizar listagem)
+  id            String           @id @default(uuid())
+  session       WhatsAppSession  @relation(fields: [sessionId], references: [sessionId])
+  sessionId     String
+  contactJid    String
+  contactName   String?
+  lastMessageAt DateTime?
+
+  messages Message[]
+
+  @@unique([sessionId, contactJid]) 
 }
 
 model Message {
-  id             String   @id @default(uuid())   // ID da mensagem
-  conversation   Conversation @relation(fields: [conversationId], references: [id]) // FK para a conversa
-  conversationId String                             // Campo de relação
-  waId           String                             // JID de quem enviou a mensagem
-  fromMe         Boolean                            // Indica se a mensagem foi enviada pelo usuário/sistema
-  body           String    @db.Text                 // Conteúdo da mensagem
-  type           String                              // Tipo de mensagem (texto, imagem, áudio...)
-  meta           Json?                               // Dados adicionais (JSON)
-  createdAt      DateTime  @default(now())          // Data de criação
-  aiResponse     AiResponse?                        // Relação 1:1: possível resposta de AI para esta mensagem
-}
-
-model AiResponse {
-  id        String   @id @default(uuid())   // ID da resposta de AI
-  message   Message  @relation(fields: [messageId], references: [id]) // FK para a mensagem original
-  messageId String   @unique                // Cada mensagem pode ter no máximo uma resposta AI
-  provider  String                            // Nome do provedor de IA (ex: OpenAI, Google)
-  prompt    String   @db.Text                 // Prompt enviado para a IA
-  response  String   @db.Text                 // Resposta recebida da IA
-  tokens    Int?                               // Número de tokens usados (opcional)
-  createdAt DateTime @default(now())          // Data de criação
+  id             String       @id @default(uuid())
+  conversation   Conversation @relation(fields: [conversationId], references: [id])
+  conversationId String
+  waId           String
+  fromMe         Boolean
+  body           String       @db.Text
+  type           MessageType  @default(text)
+  createdAt      DateTime     @default(now())
 }

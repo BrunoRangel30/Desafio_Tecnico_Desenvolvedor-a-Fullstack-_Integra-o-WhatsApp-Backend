@@ -1,4 +1,4 @@
-import { Injectable, Logger } from "@nestjs/common";
+import { Injectable, Logger, NotFoundException } from "@nestjs/common";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import makeWASocket, { useMultiFileAuthState, DisconnectReason, ConnectionState } from "@whiskeysockets/baileys";
 import { Boom } from "@hapi/boom";
@@ -107,23 +107,62 @@ export class WhatsappService {
         const textContent = msg.message?.conversation || msg.message?.extendedTextMessage?.text;
         if (!textContent) continue;
 
-        const incomingMessage = {
-          id: randomUUID(),
-          channel: "whatsapp",
-          conversationId: msg.key.remoteJid!,
-          from: msg.key.remoteJid!,
-          to: "me",
-          content: textContent,
-          type: "text",
-          timestamp: new Date().toISOString(),
-          sessionId,
-        };
-        this.emitEvent("message", sessionId, incomingMessage);
 
-        const response = await this.iaService.getResponse(textContent, []);
-        await session.sock.sendMessage(msg.key.remoteJid!, { text: response });
+        // 1 - Buscar ou criar a conversa
+        /* let conversation = await this.prisma.conversation.findFirst({
+           where: {
+             sessionId,
+             contactJid: msg.key.remoteJid!,
+           },
+         });;
+ 
+         if (!conversation) {
+           conversation = await this.prisma.conversation.create({
+             data: {
+               sessionId,
+               contactJid: msg.key.remoteJid!,
+               contactName: msg.pushName || null,
+             },
+           });
+         }
+ 
+         //////////////////////////////////////////
+ 
+         // 2 - Salvar pergunta
+         const userMessage = await this.prisma.message.create({
+           data: {
+             conversationId: conversation.id,
+             waId: msg.key.remoteJid!,
+             fromMe: false,
+             body: textContent,
+             type: "text",
+           },
+         });
+ 
+         // Atualiza lastMessageAt
+         await this.prisma.conversation.update({
+           where: { id: conversation.id },
+           data: { lastMessageAt: new Date() },
+         });*/
+        ////////////////////////////
+        /* const incomingMessage = {
+           id: randomUUID(),
+           channel: "whatsapp",
+           conversationId: msg.key.remoteJid!,
+           from: msg.key.remoteJid!,
+           to: "me",
+           content: textContent,
+           type: "text",
+           timestamp: new Date().toISOString(),
+           sessionId,
+         };*/
 
-        const aiMessage = {
+        //this.emitEvent("message", sessionId, userMessage);
+
+        // const response = await this.iaService.getResponse(textContent, []);
+        //await session.sock.sendMessage(msg.key.remoteJid!, { text: response });
+
+        /*const aiMessage = {
           id: randomUUID(),
           channel: "whatsapp",
           conversationId: msg.key.remoteJid!,
@@ -133,8 +172,24 @@ export class WhatsappService {
           type: "text",
           timestamp: new Date().toISOString(),
           sessionId,
-        };
-        this.emitEvent("message", sessionId, aiMessage);
+        };*/
+        // 3 - Salvar resposta
+        /*  const aiMessage = await this.prisma.message.create({
+            data: {
+              conversationId: conversation.id,
+              waId: "me", // pode ser um identificador fixo
+              fromMe: true,
+              body: response,
+              type: "text",
+            },
+          });
+  
+          await this.prisma.conversation.update({
+            where: { id: conversation.id },
+            data: { lastMessageAt: new Date() },
+          });
+          ///////////////
+          this.emitEvent("message", sessionId, aiMessage);*/
       }
     });
 
@@ -195,7 +250,7 @@ export class WhatsappService {
     });
 
     // Atualiza a lista do usuário
-     await this.connect(sessionId);
+    await this.connect(sessionId);
 
     return newSession;
   }
@@ -229,66 +284,237 @@ export class WhatsappService {
     }
   }
 
-  // ========================
-  // RESTORE SESSIONS ON START
-  // ========================
-  /*async restoreSessions() {
-    const sessions = await this.prisma.whatsAppSession.findMany({
-      where: { status: { not: "disconnected" } },
+
+
+
+  /*  async simulateIncomingMessage(sessionId: string, text: string, tempConversationId?: string) {
+      // 1️⃣ Buscar ou criar conversa (usando upsert)
+      const conversation = await this.prisma.conversation.upsert({
+        where: tempConversationId
+          ? { id: tempConversationId } // conversa temporária já persistida
+          : { sessionId_contactJid: { sessionId, contactJid: `bot-${sessionId}` } },
+        update: { lastMessageAt: new Date() },
+        create: {
+          sessionId,
+          contactJid: "bot", // fixo para conversa com a IA
+          contactName: "IA",
+          lastMessageAt: new Date(),
+        },
+      });
+  
+      // 2️⃣ Criar mensagem de entrada (pergunta do usuário)
+      const userMessage = await this.prisma.message.create({
+        data: {
+          conversationId: conversation.id,
+          waId: conversation.contactJid, // remetente "bot"
+          fromMe: false,                 // mensagem do contato
+          body: text,
+          type: "text",
+          //timestamp: new Date(),
+        },
+      });
+  
+      // Emitir evento para atualizar frontend
+      this.emitEvent("message", sessionId, userMessage);
+  
+      // 3️⃣ Chamar IA para gerar resposta (simulada aqui)
+      const response = await this.iaService.getResponse(text, []);
+  
+      // 4️⃣ Criar mensagem de resposta da IA
+      const aiMessage = await this.prisma.message.create({
+        data: {
+          conversationId: conversation.id,
+          waId: "me",     // remetente fixo da IA
+          fromMe: true,   // resposta do sistema
+          body: response,
+          type: "text",
+          //timestamp: new Date(),
+        },
+      });
+  
+      // Emitir evento da resposta da IA
+      this.emitEvent("message", sessionId, aiMessage);
+  
+      // Retornar objetos para o frontend atualizar a UI
+      return {
+        conversationId: conversation.id,
+        userMessage,
+        aiMessage,
+      };
+    }*/
+
+
+  /*async simulateIncomingMessage(sessionId: string, text: string, tempConversationId?: string) {
+    console.log("📩 [simulateIncomingMessage] Nova mensagem recebida", {
+      sessionId,
+      text,
+      tempConversationId,
+    });
+  
+    // 1️⃣ Buscar ou criar conversa (usando índice único sessionId+contactJid)
+    const conversation = await this.prisma.conversation.upsert({
+      where: {
+        sessionId_contactJid: {
+          sessionId,
+          contactJid: `bot-${sessionId}`, // 🔑 sempre o mesmo "usuário IA" para cada sessão
+        },
+      },
+      update: {
+        lastMessageAt: new Date(),
+      },
+      create: {
+        sessionId,
+        contactJid: `bot-${sessionId}`,
+        contactName: "Chat IA",
+        lastMessageAt: new Date(),
+      },
+    });
+  
+    console.log("✅ [simulateIncomingMessage] Conversa vinculada:", conversation.id);
+  
+    // 2️⃣ Criar a mensagem do usuário
+    const userMessage = await this.prisma.message.create({
+      data: {
+        conversationId: conversation.id,
+        waId: randomUUID(),
+        fromMe: false, // usuário
+        body: text,
+        type: "text",
+      },
+    });
+  
+    console.log("💬 [simulateIncomingMessage] Mensagem do usuário salva:", userMessage.id);
+    let messages = userMessage
+  
+    // 🔹 Emitir evento da mensagem do usuário
+    /*this.eventEmitter.emit("whatsapp.message", {
+      sessionId,
+       payload: {
+      ...conversation,
+      messages,
+    },
+    });*/
+
+
+  //  const responseText = await this.iaService.getResponse(text, []); 
+  // 👆 aqui você pode passar o histórico ou só o texto atual
+
+
+  //const aiMessage = await this.prisma.message.create({
+  /*  data: {
+      conversationId: conversation.id,
+      waId: randomUUID(),
+      fromMe: true, // IA
+      body: responseText,
+      type: "text",
+    },
+  });
+
+  console.log("🤖 [simulateIncomingMessage] Mensagem da IA salva:", aiMessage.id);
+  messages = aiMessage
+  // 🔹 Emitir evento da resposta da IA
+  this.eventEmitter.emit("whatsapp.message", {
+    sessionId,
+    payload: {
+    ...conversation,
+    messages,
+  },
+  });
+
+  // 5️⃣ Retornar ambos
+  return { conversation, userMessage, aiMessage };
+}*/
+  async simulateIncomingMessage(
+    sessionId: string,
+    text: string,
+    conversationId: string // conversa já existente
+  ) {
+    console.log("📩 [simulateIncomingMessage] Nova mensagem recebida", {
+      sessionId,
+      text,
+      conversationId,
     });
 
-    for (const dbSession of sessions) {
-      const { sessionId } = dbSession;
-      if (this.sessions[sessionId]) continue;
+    // 1️⃣ Criar mensagem do usuário
+    const userMessage = await this.prisma.message.create({
+      data: {
+        conversationId,
+        waId: randomUUID(),
+        fromMe: false,
+        body: text,
+        type: "text",
+      },
+    });
 
-      try {
-        this.logger.log(`Restaurando sessão ${sessionId}...`);
-        await this.connect(sessionId);
-        /*await this.prisma.whatsAppSession.update({
-          where: { sessionId },
-          data: { status: "pending" },
-        });
-      } catch (err) {
-        this.logger.error(`Erro ao restaurar sessão ${sessionId}: ${err.message}`);
-      }
+    console.log("💬 [simulateIncomingMessage] Mensagem do usuário salva:", userMessage.id);
+
+    // 2️⃣ Obter resposta da IA
+    const responseText = await this.iaService.getResponse(text, []); // aqui pode passar histórico se quiser
+
+    // 3️⃣ Criar mensagem da IA
+    const aiMessage = await this.prisma.message.create({
+      data: {
+        conversationId,
+        waId: randomUUID(),
+        fromMe: true,
+        body: responseText,
+        type: "text",
+      },
+    });
+
+    console.log("🤖 [simulateIncomingMessage] Mensagem da IA salva:", aiMessage.id);
+
+    // 4️⃣ Buscar todas as mensagens da conversa (histórico completo)
+    const allMessages = await this.prisma.message.findMany({
+      where: { conversationId },
+      orderBy: { createdAt: "asc" }, // ordena pela criação da mensagem
+    });
+
+    // 5️⃣ Emitir evento com o histórico completo da conversa
+    this.eventEmitter.emit("whatsapp.message", {
+      sessionId,
+      payload: {
+        id: conversationId,
+        messages: allMessages,
+      },
+    });
+
+    return { conversationId, userMessage, aiMessage };
+  }
+
+
+  async createConversation(sessionId: string) {
+    const conversation = await this.prisma.conversation.create({
+      data: {
+        sessionId,
+        contactJid: `bot-${randomUUID()}`, // 🔑 IA vinculada a essa sessão
+        contactName: "Chat IA",
+        lastMessageAt: new Date(),
+      },
+    });
+
+    return {
+      ...conversation,
+      messages: [], // 👈 frontend sempre espera array
+    };
+  }
+
+
+  async getConversationsBySession(sessionId: string) {
+    const sessionExists = await this.prisma.whatsAppSession.findUnique({
+      where: { sessionId },
+    });
+
+    if (!sessionExists) {
+      throw new NotFoundException(`Sessão ${sessionId} não encontrada`);
     }
-  }*/
 
-  async simulateIncomingMessage(sessionId: string, text: string, conversationId?: string) {
-    // Gera uma ID consistente se não foi passada
-    const messageId = conversationId || randomUUID();
-
-    // Chama a IA para gerar a resposta
-    const response = await this.iaService.getResponse(text, []);
-
-    // Mensagem simulada de entrada
-    const incomingMessage = {
-      id: messageId,
-      channel: "bot",
-      conversationId: messageId,
-      from: "bot",
-      to: "me",
-      content: text,
-      type: "text",
-      timestamp: new Date().toISOString(),
-      sessionId,
-    };
-    this.emitEvent("message", sessionId, incomingMessage);
-
-    // Mensagem simulada de resposta da IA
-    const aiMessage = {
-      id: randomUUID(),
-      channel: "bot",
-      conversationId: messageId,
-      from: "me",
-      to: "bot",
-      content: response,
-      type: "text",
-      timestamp: new Date().toISOString(),
-      sessionId,
-    };
-    this.emitEvent("message", sessionId, aiMessage);
-
-    return { incomingMessage, aiMessage };
+    return this.prisma.conversation.findMany({
+      where: { sessionId },
+      orderBy: { lastMessageAt: "desc" },
+      include: {
+        messages: { orderBy: { createdAt: "asc" } },
+      },
+    });
   }
 }

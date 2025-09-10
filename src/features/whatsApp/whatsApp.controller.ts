@@ -1,4 +1,4 @@
-import { Body, Controller, Post, Req, UseGuards } from "@nestjs/common";
+import { Get, Param, Controller, Post, Req, UseGuards, Body } from "@nestjs/common";
 import { AuthGuard } from "@nestjs/passport";
 import { WhatsappService } from "./service/whatsapp.service";
 import { v4 as uuidv4 } from "uuid";
@@ -24,5 +24,15 @@ export class WhatsappController {
       session,
       message: "Sessão criada e aguardando pareamento (QR code)"
     };
+  }
+
+  @Get("/conversations")
+  async getConversations(@Param("sessionId") sessionId: string) {
+      return this.whatsappService.getConversationsBySession(sessionId);
+  }
+
+   @Post("conversations/create")
+  async createConversation(@Body() body: { sessionId: string }) {
+    return this.whatsappService.createConversation(body.sessionId);
   }
 }
