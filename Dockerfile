@@ -1,42 +1,26 @@
-# --------------------------
-# Etapa de build
-# --------------------------
-FROM node:22-alpine AS builder
+FROM node:14 AS builder
 
+# Create app directory
 WORKDIR /app
 
-# Copiar apenas arquivos de dependência
+# A wildcard is used to ensure both package.json AND package-lock.json are copied
 COPY package*.json ./
+COPY prisma ./prisma/
 
-# Instalar dependências completas (produção + dev)
-RUN npm install --legacy-peer-deps --no-audit --no-fund
+# Install app dependencies
+RUN npm install
 
-# Copiar todo o código
 COPY . .
 
-# Rodar build (NestJS, Next.js, etc.)
 RUN npm run build
 
+FROM node:14
 
-# --------------------------
-# Etapa final (runner)
-# --------------------------
-FROM node:22-alpine AS runner
-
-WORKDIR /app
-
-# Copiar apenas arquivos de dependência
-COPY package*.json ./
-
-# Instalar apenas dependências de produção (inclui prisma client)
-RUN npm install --omit=dev --legacy-peer-deps --no-audit --no-fund
-
-# Copiar dist e prisma do builder
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
 
-# Porta padrão (ajuste se necessário)
 EXPOSE 3000
-
-# Rodar migrations antes de iniciar
-CMD npx prisma migrate deploy && npm start
+# 👇 new migrate and start app script
+CMD [  "npm", "run", "start:migrate:prod" ]
