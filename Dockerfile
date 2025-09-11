@@ -1,26 +1,36 @@
-FROM node:14 AS builder
+FROM node:20-alpine AS builder
 
-# Create app directory
+# Criar diretório de trabalho
 WORKDIR /app
 
-# A wildcard is used to ensure both package.json AND package-lock.json are copied
+# Copiar arquivos de dependência
 COPY package*.json ./
 COPY prisma ./prisma/
 
-# Install app dependencies
+# Instalar dependências (incluindo dev para build)
 RUN npm install
 
+# Copiar restante do código
 COPY . .
 
+# Build da aplicação
 RUN npm run build
 
-FROM node:14
 
+# ==============================
+# Final image
+# ==============================
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Copiar apenas os artefatos necessários
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
 
 EXPOSE 3000
-# 👇 new migrate and start app script
-CMD [  "npm", "run", "start:migrate:prod" ]
+
+# Rodar migrações e iniciar app
+CMD ["npm", "run", "start:migrate:prod"]

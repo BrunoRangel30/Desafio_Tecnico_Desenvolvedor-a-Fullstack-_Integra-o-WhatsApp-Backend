@@ -16,10 +16,11 @@ export class WhatsappController {
   /** Cria uma sessão automática para o usuário logado */
   @Post("/sessions/auto")
   async create(@Req() req: AuthenticatedRequest) {
-    const userId = req.user.id;         // pega o usuário logado do JWT
-    const sessionId = uuidv4();         // gera UUID para a sessão
+    const userId = req.user.id;
+    const sessionId = uuidv4();
     const session = await this.whatsappService.createAndConnectSession(userId, sessionId);
-
+    //ativa
+    await this.whatsappService.connect(sessionId);
     return {
       session,
       message: "Sessão criada e aguardando pareamento (QR code)"
@@ -28,10 +29,10 @@ export class WhatsappController {
 
   @Get("/conversations/:sessionId")
   async getConversations(@Param("sessionId") sessionId: string) {
-      return this.whatsappService.getConversationsBySession(sessionId);
+    return this.whatsappService.getConversationsBySession(sessionId);
   }
 
-   @Post("conversations/create")
+  @Post("conversations/create")
   async createConversation(@Body() body: { sessionId: string }) {
     return this.whatsappService.createConversation(body.sessionId);
   }

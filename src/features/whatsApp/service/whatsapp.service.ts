@@ -199,8 +199,6 @@ export class WhatsappService {
       listenersRegistered: false,
     };
 
-    //console.log('Sessão iniciada:', sessionId);
-
     this.registerListeners(sessionId, saveCreds);
   }
 
@@ -225,14 +223,13 @@ export class WhatsappService {
     return sessions;
   }
 
-
   async createAndConnectSession(userId: string, sessionId: string) {
     const newSession = await this.prisma.whatsAppSession.create({
       data: { sessionId, userId, status: "pending" },
     });
 
     // Atualiza a lista do usuário
-    await this.connect(sessionId);
+    //await this.connect(sessionId);
 
     return newSession;
   }
