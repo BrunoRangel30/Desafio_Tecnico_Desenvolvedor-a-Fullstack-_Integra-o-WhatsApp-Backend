@@ -17,7 +17,7 @@ import { JwtService } from "@nestjs/jwt";
 
 @WebSocketGateway({
   cors: {
-    origin: process.env.NEXT_PUBLIC_API_URL || "*", // libera só o front certo
+    origin: process.env.NEXT_PUBLIC_API_URL || "*", 
     credentials: true,
   },
 })
@@ -30,7 +30,7 @@ export class WhatsappGateway implements OnGatewayInit, OnGatewayConnection {
     private readonly jwtService: JwtService,
   ) { }
 
-  // 🔹 Valida o token no handshake e injeta o user no client
+  // Valida o token no handshake e injeta o user no client
   async handleConnection(client: Socket) {
     try {
       const token = client.handshake.auth?.token;
@@ -45,7 +45,7 @@ export class WhatsappGateway implements OnGatewayInit, OnGatewayConnection {
       });
 
       (client as any).user = payload; // ✅ injeta user no socket
-      console.log("🔗 Usuário conectado via WS:", payload.sub);
+      //console.log("🔗 Usuário conectado via WS:", payload.sub);
     } catch (err) {
       console.error("❌ Erro ao validar token do WS:", err.message);
       client.disconnect(true);
@@ -59,12 +59,12 @@ export class WhatsappGateway implements OnGatewayInit, OnGatewayConnection {
     });
 
     this.eventEmitter.on("whatsapp.status", ({ sessionId, payload }) => {
-      console.log('resposta_satus_servdior', sessionId)
+      //console.log('resposta_satus_servdior', sessionId)
       this.server.emit(`status_${sessionId}`, payload);
     });
 
     this.eventEmitter.on("whatsapp.message", ({ sessionId, payload }) => {
-      console.log("📩 Enviando mensagem para a sessao", sessionId, payload);
+      //console.log("📩 Enviando mensagem para a sessao", sessionId, payload);
       this.server.to(sessionId).emit("message", payload);
     });
   }
@@ -76,7 +76,7 @@ export class WhatsappGateway implements OnGatewayInit, OnGatewayConnection {
       return { status: "unauthorized" };
     }
 
-    console.log("Mensagem recebida do front:", data, "de", user.sub);
+    //console.log("Mensagem recebida do front:", data, "de", user.sub);
     await this.adapter.sendMessage(data.sessionId, data.text, data.conversationId);
     return { status: "ok" };
   }
@@ -89,7 +89,7 @@ export class WhatsappGateway implements OnGatewayInit, OnGatewayConnection {
       return;
     }
 
-    // 🔹 Busca sessões do usuário logado
+    //Busca sessões do usuário logado
     const sessions = await this.adapter.getUserSessions(user.sub);
 
     // Envia pro front

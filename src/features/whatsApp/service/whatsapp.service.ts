@@ -43,7 +43,6 @@ export class WhatsappService {
 
     const { qr, connection, lastDisconnect } = update;
     console.log(connection, 'update-conection');
-    console.log(connection, 'update-conection');
 
     if (qr) {
       session.qrCode = qr;
@@ -53,7 +52,7 @@ export class WhatsappService {
         data: { qr, status: "qr" },
       });
       this.emitEvent("qr", sessionId, qr);
-       this.emitEvent("status", sessionId, "qr");
+      this.emitEvent("status", sessionId, "qr");
       //this.emitEvent("status", sessionId, "qr");
     }
 
@@ -101,14 +100,13 @@ export class WhatsappService {
     if (!session || session.listenersRegistered) return;
 
     session.sock.ev.on("messages.upsert", async (m) => {
-      console.log('chaamou a sessao', sessionId)
       for (const msg of m.messages) {
         if (msg.key.fromMe) continue;
         if (msg.key.remoteJid?.endsWith("@g.us")) continue;
 
         const textContent = msg.message?.conversation || msg.message?.extendedTextMessage?.text;
         if (!textContent) continue;
-        // 1️⃣ Buscar ou criar a conversa
+        // Buscar ou criar a conversa
         let conversation = await this.prisma.conversation.findFirst({
           where: {
             sessionId,
@@ -127,7 +125,7 @@ export class WhatsappService {
           });
         }
 
-        // 2️⃣ Salvar mensagem do usuário
+        //Salvar mensagem do usuário
         await this.prisma.message.create({
           data: {
             conversationId: conversation.id,
@@ -144,10 +142,10 @@ export class WhatsappService {
           data: { lastMessageAt: new Date() },
         });
 
-        // 3️⃣ Obter resposta da IA
+        //  Obter resposta da IA
         const responseText = await this.iaService.getResponse(textContent, []);
 
-        // 4️⃣ Criar mensagem da IA
+        //  Criar mensagem da IA
         await this.prisma.message.create({
           data: {
             conversationId: conversation.id,
@@ -166,7 +164,7 @@ export class WhatsappService {
 
         await session.sock.sendMessage(msg.key.remoteJid!, { text: responseText });
 
-        // 5️⃣ Buscar histórico completo da conversa
+        // Buscar histórico completo da conversa
         const allMessages = await this.prisma.message.findMany({
           where: { conversationId: conversation.id },
           orderBy: { createdAt: "asc" },
@@ -180,7 +178,6 @@ export class WhatsappService {
       }
     });
 
-    //console.log('registerListeners');
 
     session.sock.ev.on("connection.update", (update) => this.handleConnectionUpdate(sessionId, update));
     session.sock.ev.on("creds.update", saveCreds);
@@ -231,9 +228,8 @@ export class WhatsappService {
       data: { sessionId, userId, status: "pending" },
     });
 
-    //await this.listSessionsByUser(userId)
     // Atualiza a lista do usuário
-    await this.connect(sessionId); // não precisa await, pode ser paralelo
+    await this.connect(sessionId);
 
     return newSession;
   }
@@ -305,8 +301,6 @@ export class WhatsappService {
       },
     });
 
-   // console.log("🤖 [simulateIncomingMessage] Mensagem da IA salva:", aiMessage.id);
-
     //  Buscar todas as mensagens da conversa (histórico completo)
     const allMessages = await this.prisma.message.findMany({
       where: { conversationId },
@@ -338,7 +332,7 @@ export class WhatsappService {
 
     return {
       ...conversation,
-      messages: [], 
+      messages: [],
     };
   }
 

@@ -13,9 +13,9 @@ async function bootstrap() {
 
   // Habilita validação automática em todos os DTOs
   app.useGlobalPipes(new ValidationPipe({
-    whitelist: true,        // remove propriedades não definidas no DTO
-    forbidNonWhitelisted: true, // lança erro se passar propriedades extras
-    transform: true,        // converte os tipos automaticamente
+    whitelist: true,        
+    forbidNonWhitelisted: true, 
+    transform: true,      
   }));
 
   await app.listen(process.env.PORT || 3002, '0.0.0.0');

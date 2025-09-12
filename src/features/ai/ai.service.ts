@@ -30,7 +30,7 @@ export class IAService {
     this.maxHistory = maxHistory;
 
     this.redisClient.on("connect", () => {
-      console.log("Conectado ao Redis com sucesso!");
+     // console.log("Conectado ao Redis com sucesso!");
       this.isRedisConnected = true;
     });
 
@@ -51,16 +51,17 @@ export class IAService {
   private hashMessage(message: string): string {
     return crypto.createHash("md5").update(message).digest("hex");
   }
-
+ //prompt simples
   private buildPrompt(userMessage: string, history: string[]): string {
     const lastMessages = history.slice(-this.maxHistory).join("\n");
     return `Histórico resumido:\n${lastMessages}\n\nUsuário: ${userMessage}\nResponda de forma curta e objetiva (máx. 2 frases):`;
   }
 
   async getResponse(userMessage: string, conversationHistory: string[]): Promise<string> {
+
     const prompt = this.buildPrompt(userMessage, conversationHistory);
     const promptHash = this.hashMessage(prompt);
-
+     //Cache em Redis
     if (this.isRedisConnected) {
       const cachedResponse = await this.redisClient.get(promptHash);
       if (cachedResponse) return cachedResponse;
