@@ -20,7 +20,7 @@ export class WhatsappController {
     const sessionId = uuidv4();
     const session = await this.whatsappService.createAndConnectSession(userId, sessionId);
     //ativa
-    await this.whatsappService.connect(sessionId);
+    //await this.whatsappService.connect(sessionId);
     return {
       session,
       message: "Sessão criada e aguardando pareamento (QR code)"

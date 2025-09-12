@@ -42,7 +42,8 @@ export class WhatsappService {
     if (!session) return;
 
     const { qr, connection, lastDisconnect } = update;
-    console.log(connection, 'update');
+    console.log(connection, 'update-conection');
+    console.log(connection, 'update-conection');
 
     if (qr) {
       session.qrCode = qr;
@@ -52,6 +53,8 @@ export class WhatsappService {
         data: { qr, status: "qr" },
       });
       this.emitEvent("qr", sessionId, qr);
+       this.emitEvent("status", sessionId, "qr");
+      //this.emitEvent("status", sessionId, "qr");
     }
 
     if (connection === "open") {
@@ -228,8 +231,9 @@ export class WhatsappService {
       data: { sessionId, userId, status: "pending" },
     });
 
+    //await this.listSessionsByUser(userId)
     // Atualiza a lista do usuário
-    //await this.connect(sessionId);
+    await this.connect(sessionId); // não precisa await, pode ser paralelo
 
     return newSession;
   }
