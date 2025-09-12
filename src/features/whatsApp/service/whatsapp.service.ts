@@ -40,55 +40,66 @@ export class WhatsappService {
   private async handleConnectionUpdate(sessionId: string, update: Partial<ConnectionState>) {
     const session = this.sessions[sessionId];
     if (!session) return;
+    try {
+      const { qr, connection, lastDisconnect } = update;
+      console.log(connection, 'update-conection');
 
-    const { qr, connection, lastDisconnect } = update;
-    console.log(connection, 'update-conection');
-
-    if (qr) {
-      session.qrCode = qr;
-      session.status = "qr";
-      await this.prisma.whatsAppSession.update({
-        where: { sessionId },
-        data: { qr, status: "qr" },
-      });
-      this.emitEvent("qr", sessionId, qr);
-      this.emitEvent("status", sessionId, "qr");
-      //this.emitEvent("status", sessionId, "qr");
-    }
-
-    if (connection === "open") {
-      session.qrCode = null;
-      session.status = "connected";
-      await this.prisma.whatsAppSession.update({
-        where: { sessionId },
-        data: { qr: null, status: "connected" },
-      });
-      this.emitEvent("status", sessionId, "connected");
-      this.logger.log(`Sessão ${sessionId} conectada`);
-    }
-
-    if (connection === "close") {
-      const error = lastDisconnect?.error as Boom;
-      const statusCode = error?.output?.statusCode;
-
-      if (statusCode === DisconnectReason.loggedOut || statusCode === 401) {
-        session.qrCode = null;
-        session.status = "disconnected";
+      if (qr) {
+        session.qrCode = qr;
+        session.status = "qr";
         await this.prisma.whatsAppSession.update({
           where: { sessionId },
-          data: { qr: null, status: "disconnected" },
+          data: { qr, status: "qr" },
         });
-        this.emitEvent("status", sessionId, "disconnected");
-      } else {
-        session.status = "pending";
-        await this.prisma.whatsAppSession.update({
-          where: { sessionId },
-          data: { status: "pending" },
-        });
-        this.emitEvent("status", sessionId, "pending");
+        this.emitEvent("qr", sessionId, qr);
 
-        setTimeout(() => this.connect(sessionId), 3000);
       }
+      if (connection === "open") {
+        session.qrCode = null;
+        session.status = "connected";
+        await this.prisma.whatsAppSession.update({
+          where: { sessionId },
+          data: { qr: null, status: "connected" },
+        });
+        this.emitEvent("status", sessionId, "connected");
+        this.logger.log(`Sessão ${sessionId} conectada`);
+      }
+
+      if (connection === "close") {
+        const error = lastDisconnect?.error as Boom;
+        const statusCode = error?.output?.statusCode;
+
+        if (statusCode === DisconnectReason.loggedOut || statusCode === 401) {
+          session.qrCode = null;
+          session.status = "disconnected";
+          await this.prisma.whatsAppSession.update({
+            where: { sessionId },
+            data: { qr: null, status: "disconnected" },
+          });
+          this.emitEvent("status", sessionId, "disconnected");
+        } else {
+          session.status = "pending";
+          await this.prisma.whatsAppSession.update({
+            where: { sessionId },
+            data: { status: "pending" },
+          });
+          this.emitEvent("status", sessionId, "pending");
+
+          setTimeout(() => this.connect(sessionId), 3000);
+        }
+
+      }
+    } catch (err) {
+      this.logger.error(`Erro na atualização da sessão ${sessionId}:`, err);
+
+      // Atualiza status para error
+      session.status = "disconnected";
+      await this.prisma.whatsAppSession.update({
+        where: { sessionId },
+        data: { status: "disconnected" },
+      });
+      this.emitEvent("status", sessionId, "disconnected");
+      setTimeout(() => this.connect(sessionId), 3000);
     }
   }
 
