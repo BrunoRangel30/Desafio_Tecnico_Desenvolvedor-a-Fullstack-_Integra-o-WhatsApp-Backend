@@ -67,7 +67,7 @@ backend/
 │── package.json
 └── README.md
 
----
+```
 
 ## 🗄️ Estrutura do Banco de Dados
 
