@@ -15,7 +15,12 @@ import { SendMessageDto } from "../dtos/send-message.dto";
 import { JwtService } from "@nestjs/jwt";
 
 
-@WebSocketGateway({ cors: "*" })
+@WebSocketGateway({
+  cors: {
+    origin: process.env.NEXT_PUBLIC_API_URL || "*", // libera só o front certo
+    credentials: true,
+  },
+})
 export class WhatsappGateway implements OnGatewayInit, OnGatewayConnection {
   @WebSocketServer() server: Server;
 
