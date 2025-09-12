@@ -67,53 +67,60 @@ backend/
 │── package.json
 └── README.md
 
-```bash
-## 📊 Diagrama ERD (Banco de Dados)
+## 🗄️ Estrutura do Banco de Dados
 
-model User {
-  id        String            @id @default(uuid())
-  email     String            @unique
-  name      String?
-  password  String?
-  createdAt DateTime          @default(now())
+- **User**
+  - `id` (PK)
+  - `email` (único)
+  - `name`
+  - `password`
+  - `createdAt`
+  - **Relacionamentos:**
+    - 1 → N **WhatsAppSession**
 
-  sessions  WhatsAppSession[]
-}
+---
 
-model WhatsAppSession {
-  id          String           @id @default(uuid())
-  sessionId   String           @unique
-  user        User?            @relation(fields: [userId], references: [id])
-  userId      String?
-  status      SessionStatus    @default(open)
-  pairingCode String?
-  qr          String?
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
+- **WhatsAppSession**
+  - `id` (PK)
+  - `sessionId` (único)
+  - `userId` (FK → User.id)
+  - `status` (enum: open, connected, disconnected, close, pending, qr)
+  - `pairingCode`
+  - `qr`
+  - `createdAt`
+  - `updatedAt`
+  - **Relacionamentos:**
+    - 1 → N **Conversation**
+    - N → 1 **User**
 
-  conversations Conversation[]
-}
+---
 
-model Conversation {
-  id            String           @id @default(uuid())
-  session       WhatsAppSession  @relation(fields: [sessionId], references: [sessionId])
-  sessionId     String
-  contactJid    String
-  contactName   String?
-  lastMessageAt DateTime?
+- **Conversation**
+  - `id` (PK)
+  - `sessionId` (FK → WhatsAppSession.sessionId)
+  - `contactJid`
+  - `contactName`
+  - `lastMessageAt`
+  - **Relacionamentos:**
+    - 1 → N **Message**
+    - N → 1 **WhatsAppSession**
 
-  messages Message[]
+---
 
-  @@unique([sessionId, contactJid]) 
-}
+- **Message**
+  - `id` (PK)
+  - `conversationId` (FK → Conversation.id)
+  - `waId`
+  - `fromMe` (boolean)
+  - `body` (text)
+  - `type` (enum: text, image, video, audio, file, sticker, unknown)
+  - `createdAt`
+  - **Relacionamentos:**
+    - N → 1 **Conversation**
 
-model Message {
-  id             String       @id @default(uuid())
-  conversation   Conversation @relation(fields: [conversationId], references: [id])
-  conversationId String
-  waId           String
-  fromMe         Boolean
-  body           String       @db.Text
-  type           MessageType  @default(text)
-  createdAt      DateTime     @default(now())
-}
+---
+
+### 🔗 Resumo das Relações
+- **User** possui várias **WhatsAppSession**  
+- **WhatsAppSession** possui várias **Conversation**  
+- **Conversation** possui várias **Message**  
