@@ -67,47 +67,53 @@ backend/
 │── package.json
 └── README.md
 
+```bash
 ## 📊 Diagrama ERD (Banco de Dados)
 
-```mermaid
-erDiagram
-    User {
-        string id PK
-        string email UNIQUE
-        string name
-        string password
-        datetime createdAt
-    }
+model User {
+  id        String            @id @default(uuid())
+  email     String            @unique
+  name      String?
+  password  String?
+  createdAt DateTime          @default(now())
 
-    WhatsAppSession {
-        string id PK
-        string sessionId UNIQUE
-        string userId FK
-        enum status
-        string pairingCode
-        string qr
-        datetime createdAt
-        datetime updatedAt
-    }
+  sessions  WhatsAppSession[]
+}
 
-    Conversation {
-        string id PK
-        string sessionId FK
-        string contactJid
-        string contactName
-        datetime lastMessageAt
-    }
+model WhatsAppSession {
+  id          String           @id @default(uuid())
+  sessionId   String           @unique
+  user        User?            @relation(fields: [userId], references: [id])
+  userId      String?
+  status      SessionStatus    @default(open)
+  pairingCode String?
+  qr          String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
 
-    Message {
-        string id PK
-        string conversationId FK
-        string waId
-        boolean fromMe
-        text body
-        enum type
-        datetime createdAt
-    }
+  conversations Conversation[]
+}
 
-    User ||--o{ WhatsAppSession : "possui"
-    WhatsAppSession ||--o{ Conversation : "possui"
-    Conversation ||--o{ Message : "possui"
+model Conversation {
+  id            String           @id @default(uuid())
+  session       WhatsAppSession  @relation(fields: [sessionId], references: [sessionId])
+  sessionId     String
+  contactJid    String
+  contactName   String?
+  lastMessageAt DateTime?
+
+  messages Message[]
+
+  @@unique([sessionId, contactJid]) 
+}
+
+model Message {
+  id             String       @id @default(uuid())
+  conversation   Conversation @relation(fields: [conversationId], references: [id])
+  conversationId String
+  waId           String
+  fromMe         Boolean
+  body           String       @db.Text
+  type           MessageType  @default(text)
+  createdAt      DateTime     @default(now())
+}
