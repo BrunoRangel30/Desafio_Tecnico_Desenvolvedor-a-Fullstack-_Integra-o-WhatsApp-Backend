@@ -67,6 +67,7 @@ backend/
 │── package.json
 └── README.md
 
+```bash
 ## 🗄️ Estrutura do Banco de Dados
 
 - **User**
