@@ -45,7 +45,27 @@ O projeto foi desenvolvido em **NestJS + TypeScript**, utilizando **Prisma ORM (
 - **Docker** 
 
 ---
+## 🚀 Executando Localmente
 
+### Pré-requisitos
+- Node.js ≥ 18
+- npm ou yarn
+- PostgreSQL
+- Redis
+
+---
+
+### 1️⃣ Instalação
+
+1. Instalar dependências:
+- cd backend
+- npm install
+2. Configurar variáveis de ambiente de acordo com env_example
+3. Aplicar migrações
+- npx prisma migrate deploy
+4. Inicar o servidor
+- npm run start:dev
+```
 ## 📂 Estrutura de Pastas
 
 ```bash
